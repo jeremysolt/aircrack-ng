@@ -1437,6 +1437,17 @@ static int dump_add_packet(unsigned char * h80211,
 		}
 	}
 
+	if (G.b_bssid != NULL)
+	{
+		for (int i = 0; i < G.b_bssid_count; i++)
+		{
+			if (memcmp(G.b_bssid[i], bssid, 6) == 0)
+			{
+				return (1);
+			}
+		}
+	}
+
 	/* update our chained list of access points */
 
 	ap_cur = G.ap_1st;
@@ -7254,6 +7265,9 @@ int main(int argc, char * argv[])
 	G.f_encrypt = 0;
 	G.asso_client = 0;
 	G.f_essid = NULL;
+	G.b_bssid = NULL;
+	G.b_bssid_file = NULL;
+	G.b_bssid_count = 0;
 	G.f_essid_count = 0;
 	G.active_scan_sim = 0;
 	G.update_s = 0;
@@ -7386,7 +7400,7 @@ int main(int argc, char * argv[])
 
 		option = getopt_long(argc,
 							 argv,
-							 "b:c:egiw:s:t:u:m:d:N:R:aHDB:Ahf:r:EC:o:x:MUI:WK:",
+							 "b:c:egiw:s:t:u:m:d:N:R:aHDB:Ahf:r:EC:o:x:MUI:WK:z:",
 							 long_options,
 							 &option_index);
 
@@ -7705,6 +7719,17 @@ int main(int argc, char * argv[])
 
 					return (1);
 				}
+				break;
+
+			case 'z':
+
+				if (G.b_bssid_file)
+				{
+					printf("Blacklist bssid file already specified.\n");
+					printf("\"%s --help\" for help.\n", argv[0]);
+					return (1);
+				}
+				G.b_bssid_file = optarg;
 				break;
 
 			case 'N':
@@ -8095,6 +8120,32 @@ int main(int argc, char * argv[])
 	if (setuid(getuid()) == -1)
 	{
 		perror("setuid");
+	}
+
+	if (G.b_bssid_file != NULL)
+	{
+		FILE *fp;
+		if (!(fp = fopen(G.b_bssid_file, "r")))
+		{
+			perror("fopen failed");
+			return (1);
+		}
+
+		char line[24];
+		int count = 0;
+		while (fgets(line, sizeof line, fp) != NULL)
+		{
+			unsigned char f[6];
+			if (getmac(line, 1, f) == 0)
+			{
+				G.b_bssid = realloc(G.b_bssid, (count+1)*sizeof(unsigned char *));
+				G.b_bssid[count] = calloc(sizeof(unsigned char), 6);
+				memcpy(G.b_bssid[count], f, 6);
+				count++;
+			}
+		}
+		G.b_bssid_count = count;
+		fclose(fp);
 	}
 
 	/* check if there is an input file */

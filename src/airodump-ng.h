@@ -365,6 +365,9 @@ struct globals
 	struct NA_info *na_1st, *na_end;
 	struct oui * manufList;
 
+	char * b_bssid_file; /* source file to read macs */
+	unsigned char ** b_bssid;
+	int b_bssid_count;
 	unsigned char prev_bssid[6];
 	unsigned char f_bssid[6];
 	unsigned char f_netmask[6];
